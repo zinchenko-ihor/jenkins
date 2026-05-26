@@ -58,15 +58,15 @@ pipeline {
                 sh '''
                     echo "Starting test container..."
                     sudo docker run -d \
-                        --name ${CONTAINER_NAME}-test \
-                        -p 3000:3000 \
-                        ${IMAGE_NAME}:latest
+                    --name ${CONTAINER_NAME}-test \
+                    -p 3000:3000 \
+                    ${IMAGE_NAME}:latest
 
                     echo "Waiting for app to start..."
                     sleep 5
 
                     echo "Running tests..."
-                    node test.js
+                    sudo docker exec ${CONTAINER_NAME}-test node test.js
 
                     echo "Stopping test container..."
                     sudo docker stop ${CONTAINER_NAME}-test
