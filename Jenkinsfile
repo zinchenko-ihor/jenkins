@@ -57,14 +57,16 @@ pipeline {
         stage('Test') {
             steps {
                 sh '''
-                    echo "Cleaning up any leftover test containers..."
+                    echo "Cleaning up ALL containers that may use port ${APP_PORT}..."
                     sudo docker stop ${CONTAINER_NAME}-test || true
                     sudo docker rm ${CONTAINER_NAME}-test || true
+                    sudo docker stop ${CONTAINER_NAME} || true
+                    sudo docker rm ${CONTAINER_NAME} || true
 
                     echo "Starting test container..."
                     sudo docker run -d \
                         --name ${CONTAINER_NAME}-test \
-                        -p 3000:3000 \
+                        -p ${APP_PORT}:3000 \
                         ${IMAGE_NAME}:latest
 
                     echo "Waiting for app to start..."
