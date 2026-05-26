@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'agent-1' }
+    agent { label 'remote-agent' }
 
     triggers {
         githubPush()
@@ -12,9 +12,11 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                echo 'Cloning repository...'
+                echo "Branch: ${env.GIT_BRANCH}"
+                echo "Commit: ${env.GIT_COMMIT}"
                 checkout scm
             }
         }
@@ -22,22 +24,22 @@ pipeline {
         stage('Install Docker') {
             steps {
                 sh '''
-            if command -v docker &> /dev/null; then
-                echo "Docker already installed: $(docker --version)"
-            else
-                echo "Installing Docker..."
-                sudo apt-get update -y
-                sudo apt-get install -y ca-certificates curl
-                sudo install -m 0755 -d /etc/apt/keyrings
-                sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-                sudo chmod a+r /etc/apt/keyrings/docker.asc
-                echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-                sudo apt-get update -y
-                sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-                sudo usermod -aG docker ubuntu
-                echo "Docker installed successfully"
-            fi
-        '''
+                    if command -v docker &> /dev/null; then
+                        echo "Docker already installed: $(docker --version)"
+                    else
+                        echo "Installing Docker..."
+                        sudo apt-get update -y
+                        sudo apt-get install -y ca-certificates curl
+                        sudo install -m 0755 -d /etc/apt/keyrings
+                        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+                        sudo chmod a+r /etc/apt/keyrings/docker.asc
+                        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                        sudo apt-get update -y
+                        sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+                        sudo usermod -aG docker ubuntu
+                        echo "Docker installed successfully"
+                    fi
+                '''
             }
         }
 
@@ -55,11 +57,15 @@ pipeline {
         stage('Test') {
             steps {
                 sh '''
+                    echo "Cleaning up any leftover test containers..."
+                    sudo docker stop ${CONTAINER_NAME}-test || true
+                    sudo docker rm ${CONTAINER_NAME}-test || true
+
                     echo "Starting test container..."
                     sudo docker run -d \
-                    --name ${CONTAINER_NAME}-test \
-                    -p 3000:3000 \
-                    ${IMAGE_NAME}:latest
+                        --name ${CONTAINER_NAME}-test \
+                        -p 3000:3000 \
+                        ${IMAGE_NAME}:latest
 
                     echo "Waiting for app to start..."
                     sleep 5
@@ -77,7 +83,9 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    echo "Stopping old container if exists..."
+                    echo "Stopping old containers if exist..."
+                    sudo docker stop ${CONTAINER_NAME}-test || true
+                    sudo docker rm ${CONTAINER_NAME}-test || true
                     sudo docker stop ${CONTAINER_NAME} || true
                     sudo docker rm ${CONTAINER_NAME} || true
 
@@ -121,7 +129,7 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline succeeded! App is running on port ${APP_PORT}"
+            echo "✅ Pipeline succeeded! App is running on port ${APP_PORT}. Commit: ${env.GIT_COMMIT}"
         }
         failure {
             sh '''
