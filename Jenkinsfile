@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'remote-agent' }
+    agent { label 'agent-1' }
 
     triggers {
         githubPush()
