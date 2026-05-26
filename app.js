@@ -5,7 +5,7 @@ const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => {
     res.json({ 
         status: 'ok', 
-        message: 'Hello from Docker!',
+        message: 'Hello from Docker! CI/CD via Jenkins deployed by Ihor Zinchenko',
         version: '1.0.0'
     });
 });
