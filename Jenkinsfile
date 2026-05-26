@@ -125,7 +125,7 @@ pipeline {
         }
         failure {
             sh '''
-                echo "❌ Pipeline failed! Cleaning up..."
+                echo "Pipeline failed! Cleaning up..."
                 sudo docker stop ${CONTAINER_NAME}-test || true
                 sudo docker rm ${CONTAINER_NAME}-test || true
             '''
